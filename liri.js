@@ -67,7 +67,7 @@ switch(command){
         searchSpotify(arguments);
         break;
     case "movie-this":
-        searchBand(arguments);
+        searchMovie(arguments);
         break;
     case "do-what-it-says":
         doIt();
