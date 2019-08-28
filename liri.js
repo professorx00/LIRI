@@ -10,6 +10,7 @@ const fs = require('fs')
 
 
 function searchSpotify(songTitle) {
+    console.log(songTitle);
     let spot = new Spotify({
         id: process.env.SPOT_CLIENT_ID,
         secret: process.env.SPOT_SECRET
@@ -19,7 +20,15 @@ function searchSpotify(songTitle) {
             return console.log('Error occurred: ' + err);
         }
 
-        console.log(data.tracks.items);
+        if (data.tracks.total == 0) {
+            console.log("empty")
+        }
+        else {
+            for (let x = 0; x < 4; x++) {
+                console.log(data.tracks.items[x])
+            }
+
+        }
     });
 }
 
@@ -53,26 +62,47 @@ function searchBand(bandName) {
             }
         });
 }
-function doIt(){
+function doIt() {
     console.log("Doing Something LALALALA")
 }
 
 const arguments = process.argv.slice(3).join(" ");
-const command= process.argv[2]
-switch(command){
-    case "concert-this":
-        searchBand(arguments);
-        break;
-    case "spotify-this-song":
-        searchSpotify(arguments);
-        break;
-    case "movie-this":
-        searchMovie(arguments);
-        break;
-    case "do-what-it-says":
-        doIt();
-        break;
-    default:
-        console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
+const command = process.argv[2]
+if (process.argv.length > 3) {
+    switch (command) {
+        case "concert-this":
+            searchBand(arguments);
+            break;
+        case "spotify-this-song":
+            searchSpotify(arguments);
+            break;
+        case "movie-this":
+            searchMovie(arguments);
+            break;
+        case "do-what-it-says":
+            doIt();
+            break;
+        default:
+            console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
+    }
 }
+else{
+    switch (command) {
+        case "concert-this":
+            console.log("Dear Meatbags Master, I can not get the concert if there is no concert.")
+            break;
+        case "spotify-this-song":
+            searchSpotify("the sign");
+            break;
+        case "movie-this":
+            searchMovie("Mr. Nobody");
+            break;
+        case "do-what-it-says":
+            doIt();
+            break;
+        default:
+            console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
+    }
+}
+
 
