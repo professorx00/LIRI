@@ -3,7 +3,7 @@ const axios = require('axios')
 const moment = require('moment');
 const Spotify = require('node-spotify-api');
 const fs = require('fs')
-
+let content
 
 
 
@@ -12,33 +12,59 @@ function searchSpotify(songTitle) {
         id: process.env.SPOT_CLIENT_ID,
         secret: process.env.SPOT_SECRET
     });
+    if (songTitle === '') {
+        console.log(
+            `------------------------------------------------------------------
+Artist: Ace of Base
+Song: The Sign
+Album: The Sign (US Album) [Remastered]
+Spotify Link : https://open.spotify.com/track/0hrBpAOgrt8RXigk83LLNE
+-------------------------------------------------------------------`);
+    }
+    else {
 
-    spot
-        .search({ type: 'track', limit: 10, query: songTitle })
-        .then(function (response) {
-            response.tracks.items.forEach(element => {
-                console.log(
-`------------------------------------------------------------------                    
-Artist: ${element.artists[0].name}
-Song: ${element.name}
-Album: ${element.album.name}
-Spotify Link : ${element.external_urls.spotify}
--------------------------------------------------------------------`)
+        spot
+            .search({ type: 'track', limit: 10, query: songTitle })
+            .then(function (response) {
+                response.tracks.items.forEach(element => {
+                    console.log(
+                        `------------------------------------------------------------------                    
+    Artist: ${element.artists[0].name}
+    Song: ${element.name}
+    Album: ${element.album.name}
+    Spotify Link : ${element.external_urls.spotify}
+    -------------------------------------------------------------------`)
+                });
+            })
+            .catch(function (err) {
+                console.log(`sptify error: ${err}`);
             });
-        })
-        .catch(function (err) {
-            console.log(err);
-        });
+    }
 }
 
 function searchMovie(movieTitle) {
+    // if(movieTitle === ''){
 
+    // }
     let omdbApi = process.env.OBM_API;
 
     axios.get(`http://www.omdbapi.com/?apikey=${omdbApi}&t=${movieTitle}`)
         .then(function (response) {
 
             console.log(response.data);
+            console.log(`
+Title: ${response.Title}
+Released:${moment(response.Release).format(MM-DD-YYYY)}
+Runtime:${response.Runtime}
+IMDB Rating:${response.Ratings[0]}
+Rotten Tomatoes Rating:${response.Ratings[1]}
+Production: ${response.Production}
+Release Countries: ${response.Country}
+Language:
+Plot:
+Actors:
+            `)
+
         })
         .catch(function (error) {
             if (error.response) {
@@ -61,47 +87,58 @@ function searchBand(bandName) {
             }
         });
 }
+
 function doIt() {
-    console.log("Doing Something LALALALA")
+    function processFile() {
+        let contentArray = content.split("\r\n")
+        contentArray.forEach(element => {
+            let commandAry = element.split(",")
+            main(commandAry)
+        })
+
+    }
+    fs.readFile('random.txt', "utf8", function read(err, data) {
+        if (err) {
+            throw err;
+        }
+        content = data;
+
+
+        processFile();
+    });
+
+}
+function main(commands) {
+    let command = commands[0];
+    let argument = commands.slice(1).join(" ");
+    switch (command) {
+        case "concert-this":
+            searchBand(argument);
+            break;
+        case "spotify-this-song":
+            console.log("Spotifying....")
+            searchSpotify(argument);
+            break;
+        case "movie-this":
+            console.log("Grabbing Movie Details....")
+            searchMovie(argument);
+            break;
+        case "do-what-it-says":
+            doIt();
+            break;
+        default:
+            console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
+    }
+    
 }
 
-const arguments = process.argv.slice(3).join(" ");
-const command = process.argv[2]
-if (process.argv.length > 3) {
-    switch (command) {
-        case "concert-this":
-            searchBand(arguments);
-            break;
-        case "spotify-this-song":
-            searchSpotify(arguments);
-            break;
-        case "movie-this":
-            searchMovie(arguments);
-            break;
-        case "do-what-it-says":
-            doIt();
-            break;
-        default:
-            console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
-    }
-}
-else {
-    switch (command) {
-        case "concert-this":
-            console.log("Dear Meatbags Master, I can not get the concert if there is no concert.")
-            break;
-        case "spotify-this-song":
-            searchSpotify("the sign");
-            break;
-        case "movie-this":
-            searchMovie("Mr. Nobody");
-            break;
-        case "do-what-it-says":
-            doIt();
-            break;
-        default:
-            console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
-    }
-}
+const arguments = process.argv.slice(2);
+
+main(arguments);
+
+
+
+
+
 
 
