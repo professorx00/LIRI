@@ -1,11 +1,51 @@
 require('dotenv').config();
 const axios = require('axios')
-const moment = require('moment');
 const Spotify = require('node-spotify-api');
+const NodeGeocoder = require('node-geocoder');
 const fs = require('fs')
 let content
 
+function getMonth(month) {
+    switch (month) {
+        case "Jan":
+            return "01"
+        case "Feb":
+            return "02"
+        case "Mar":
+            return "03"
+        case "Apr":
+            return "04"
+        case "May":
+            return "05"
+        case "Jun":
+            return "06"
+        case "Jul":
+            return "07"
+        case "Aug":
+            return "08"
+        case "Sep":
+            return "09"
+        case "Oct":
+            return "10"
+        case "Nov":
+            return "11"
+        case "Dec":
+            return "12"
+        default:
+            return month;
 
+    }
+}
+function releaseDateUpdate(date) {
+    let orgDate = date.split("");
+    let day = orgDate.slice(0, 2).join("");
+    let month = getMonth(orgDate.slice(3, 6).join(""));
+    let year = orgDate.slice(7).join("");
+    return (month + "/" + day + "/" + year)
+
+
+    return date;
+}
 
 function searchSpotify(songTitle) {
     let spot = new Spotify({
@@ -43,59 +83,101 @@ Spotify Link : https://open.spotify.com/track/0hrBpAOgrt8RXigk83LLNE
 }
 
 function searchMovie(movieTitle) {
-    // if(movieTitle === ''){
+    if (movieTitle === '') {
+        console.log(`
+----------------------------------------
+Title: Mr. Nobody
+Released: 09/26/2013
+Runtime:141 min
+IMDB Rating:7.8/10
+Rotten Tomatoes Rating:67%
+Production: Magnolia Pictures
+Release Countries: Belgium, Germany, Canada, France, USA, UK
+Language: English, Mohawk
+Plot:A boy stands on a station platform as a train is about to leave. Should he go with his mother or stay with his father? Infinite possibilities arise from this decision. As long as he doesn't choose, anything is possible.
+Actors:Jared Leto, Sarah Polley, Diane Kruger, Linh Dan Pham
+----------------------------------------`)
+    }
+    else {
 
-    // }
-    let omdbApi = process.env.OBM_API;
+        let omdbApi = process.env.OBM_API;
 
-    axios.get(`http://www.omdbapi.com/?apikey=${omdbApi}&t=${movieTitle}`)
-        .then(function (response) {
+        axios.get(`http://www.omdbapi.com/?apikey=${omdbApi}&t=${movieTitle}`)
+            .then(function (response) {
+                // console.log(response.data.Ratings)
+                let releaseDate = releaseDateUpdate(response.data.Released);
+                console.log(`----------------------------------------
+Title: ${response.data.Title}
+Released: ${releaseDate}
+Runtime:${response.data.Runtime}
+IMDB Rating:${response.data.Ratings[0].Value}
+Rotten Tomatoes Rating:${response.data.Ratings[1].Value}
+Production: ${response.data.Production}
+Release Countries: ${response.data.Country}
+Language: ${response.data.Language}
+Plot:${response.data.Plot}
+Actors:${response.data.Actors}
+----------------------------------------`)
 
-            console.log(response.data);
-            console.log(`
-Title: ${response.Title}
-Released:${moment(response.Release).format(MM-DD-YYYY)}
-Runtime:${response.Runtime}
-IMDB Rating:${response.Ratings[0]}
-Rotten Tomatoes Rating:${response.Ratings[1]}
-Production: ${response.Production}
-Release Countries: ${response.Country}
-Language:
-Plot:
-Actors:
-            `)
-
-        })
-        .catch(function (error) {
-            if (error.response) {
-                console.log(error)
-            }
-        });
+            })
+            .catch(function (error) {
+                if (error.response) {
+                    console.log(error)
+                }
+            });
+    }
 }
 
 function searchBand(bandName) {
-    let api = process.env.bandsintown
-    let artist = bandName
-    axios.get(`https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}`)
-        .then(function (response) {
-
-            console.log(response.data);
-        })
-        .catch(function (error) {
-            if (error.response) {
-                console.log(error)
-            }
-        });
+    if (bandName === '') {
+        console.log("Master Meatbag, Please forgive my stupidity but I received no band.")
+    }
+    else{
+        let api = process.env.bandsintown
+        let artist = bandName
+        axios.get(`https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}`)
+            .then(function (response) {
+                console.log("get band infomation");
+                // console.log(response.data)
+                const options = {
+                    provider: "mapquest",
+                    apiKey: "SHo2UeaOG76vkhzQU35ANHTplDLRo1lT"
+                };
+                var geoCoder = NodeGeocoder(options);
+    
+                response.data.forEach(element => {
+                    geoCoder.reverse({ lat: element.venue.latitude, lon: element.venue.longitude }, function (err, res) {
+                        let address = res[0].formattedAddress;
+                        console.log(`--------------------------------------------
+    Venue: ${element.venue.name}
+    Address: ${address}
+    Tickets: ${element.offers[0].status}
+    Get Tickets Here: ${element.offers[0].url}
+    --------------------------------------------`)
+                    });
+                    
+                })
+    
+    
+    
+    
+    
+            })
+            .catch(function (error) {
+                if (error.response) {
+                    console.log(error)
+                }
+            });
+    }
 }
 
 function doIt() {
     function processFile() {
         let contentArray = content.split("\r\n")
-        contentArray.forEach(element => {
-            let commandAry = element.split(",")
+        for(let x =0; x<contentArray.length;x++){
+            let commandAry = contentArray[x].split(",")
             main(commandAry)
-        })
-
+        }
     }
     fs.readFile('random.txt', "utf8", function read(err, data) {
         if (err) {
@@ -116,11 +198,11 @@ function main(commands) {
             searchBand(argument);
             break;
         case "spotify-this-song":
-            console.log("Spotifying....")
+            console.log("Spotifying...." + argument)
             searchSpotify(argument);
             break;
         case "movie-this":
-            console.log("Grabbing Movie Details....")
+            console.log("Grabbing Movie Details...." + argument)
             searchMovie(argument);
             break;
         case "do-what-it-says":
@@ -129,11 +211,10 @@ function main(commands) {
         default:
             console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
     }
-    
+
 }
 
 const arguments = process.argv.slice(2);
-
 main(arguments);
 
 
