@@ -133,15 +133,22 @@ function searchBand(bandName) {
         console.log("Master Meatbag, Please forgive my stupidity but I received no band.")
     }
     else{
-        let api = process.env.bandsintown
+        let api = process.env.BANDINTOWNAPI
         let artist = bandName
-        axios.get(`https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}`)
+        // console.log(bandName)
+        // console.log(bandName.indexOf(`"`))
+        if(bandName.indexOf(`"`)>-1){
+            artist = bandName.slice(1,bandName.length-1)
+        }
+        
+        let url = `https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}`
+        axios.get(url)
             .then(function (response) {
-                console.log("get band infomation");
+                console.log("get band infomation " + bandName);
                 // console.log(response.data)
                 const options = {
                     provider: "mapquest",
-                    apiKey: "SHo2UeaOG76vkhzQU35ANHTplDLRo1lT"
+                    apiKey: process.env.GEOCODER
                 };
                 var geoCoder = NodeGeocoder(options);
     
@@ -154,14 +161,8 @@ function searchBand(bandName) {
     Tickets: ${element.offers[0].status}
     Get Tickets Here: ${element.offers[0].url}
     --------------------------------------------`)
-                    });
-                    
+                    });                    
                 })
-    
-    
-    
-    
-    
             })
             .catch(function (error) {
                 if (error.response) {
@@ -195,6 +196,7 @@ function main(commands) {
     let argument = commands.slice(1).join(" ");
     switch (command) {
         case "concert-this":
+            console.log("Getting Concert Information...." + argument)
             searchBand(argument);
             break;
         case "spotify-this-song":
