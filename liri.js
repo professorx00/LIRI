@@ -7,29 +7,28 @@ const fs = require('fs')
 
 
 
-
-
 function searchSpotify(songTitle) {
-    console.log(songTitle);
     let spot = new Spotify({
         id: process.env.SPOT_CLIENT_ID,
         secret: process.env.SPOT_SECRET
     });
-    spot.search({ type: 'track', query: songTitle }, function (err, data) {
-        if (err) {
-            return console.log('Error occurred: ' + err);
-        }
 
-        if (data.tracks.total == 0) {
-            console.log("empty")
-        }
-        else {
-            for (let x = 0; x < 4; x++) {
-                console.log(data.tracks.items[x])
-            }
-
-        }
-    });
+    spot
+        .search({ type: 'track', limit: 10, query: songTitle })
+        .then(function (response) {
+            response.tracks.items.forEach(element => {
+                console.log(
+`------------------------------------------------------------------                    
+Artist: ${element.artists[0].name}
+Song: ${element.name}
+Album: ${element.album.name}
+Spotify Link : ${element.external_urls.spotify}
+-------------------------------------------------------------------`)
+            });
+        })
+        .catch(function (err) {
+            console.log(err);
+        });
 }
 
 function searchMovie(movieTitle) {
@@ -86,7 +85,7 @@ if (process.argv.length > 3) {
             console.log(" I did not understand what you need. Please do not beat me my meat master. Please!")
     }
 }
-else{
+else {
     switch (command) {
         case "concert-this":
             console.log("Dear Meatbags Master, I can not get the concert if there is no concert.")
