@@ -2,6 +2,7 @@ require('dotenv').config();
 const axios = require('axios')
 const Spotify = require('node-spotify-api');
 const NodeGeocoder = require('node-geocoder');
+const moment = require('moment')
 const fs = require('fs')
 let content
 
@@ -194,6 +195,13 @@ function doIt() {
 function main(commands) {
     let command = commands[0];
     let argument = commands.slice(1).join(" ");
+
+    try {
+        fs.appendFileSync('log.txt', `${command},${argument},${moment()}\n`);
+      } catch (err) {
+        console.log("write File Error: "+err)
+      }
+
     switch (command) {
         case "concert-this":
             console.log("Getting Concert Information...." + argument)
