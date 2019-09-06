@@ -7,6 +7,15 @@ const moment = require('moment')
 const fs = require('fs')
 let content
 
+//--------------------Formatters----------
+
+//Formats Band Dates for Conert API
+function getBandDate(){
+    let today = moment().format("YYYY-MM-DD");
+    let enddate = moment().add(14, 'days').format("YYYY-MM-DD");
+    return(today+"%2C"+enddate)
+}
+//Literally Console logs Nobody
 function getNobody() {
     console.log(`
 ----------------------------------------
@@ -21,6 +30,7 @@ Plot:A boy stands on a station platform as a train is about to leave. Should he 
 Actors:Jared Leto, Sarah Polley, Diane Kruger, Linh Dan Pham
 ----------------------------------------`);
 }
+//Formats month out alpah to numeric
 function getMonth(month) {
     switch (month) {
         case "Jan":
@@ -52,7 +62,7 @@ function getMonth(month) {
 
     }
 }
-
+//formats Movie Date to correct Format
 function releaseDateUpdate(date) {
     let orgDate = date.split("");
     let day = orgDate.slice(0, 2).join("");
@@ -61,6 +71,9 @@ function releaseDateUpdate(date) {
     return (month + "/" + day + "/" + year);
 }
 
+//------------------------Main Programs ------------>
+
+// Runs Spotify API
 function searchSpotify(songTitle) {
     let spot = new Spotify({
         id: process.env.SPOT_CLIENT_ID,
@@ -89,12 +102,13 @@ Spotify Link : ${element.external_urls.spotify}
 -------------------------------------------------------------------`)
                 });
             })
+            return new Promise((resolve,reject)=>{ })
             .catch(function (err) {
                 console.log(`sptify error: ${err}`);
             });
     }
 }
-
+// Run OBMD API
 function searchMovie(movieTitle) {
     if (movieTitle === '') {
         getNobody();
@@ -126,6 +140,8 @@ function searchMovie(movieTitle) {
                 console.log(`Actors:${response.data.Actors}`)
                 console.log(`----------------------------------------`)
 
+                return new Promise((resolve,reject)=>{ })
+
             }).catch(function (error) {
                 if (error.response) {
                     console.log(error)
@@ -133,7 +149,7 @@ function searchMovie(movieTitle) {
             });
     }
 }
-
+// Runs Concert API
 function searchBand(bandName) {
     if (bandName === '') {
         console.log("Master Meatbag, Please forgive my stupidity but I received no band.")
@@ -146,11 +162,12 @@ function searchBand(bandName) {
         if (bandName.indexOf(`"`) > -1) {
             artist = bandName.slice(1, bandName.length - 1)
         }
+        let date = getBandDate();
 
-        let url = `https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}`
+        let url = `https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}&date=${date}`
         axios.get(url)
             .then(function (response) {
-                console.log("get band infomation " + bandName);
+
                 // console.log(response.data)
                 const options = {
                     provider: "mapquest",
@@ -159,18 +176,21 @@ function searchBand(bandName) {
                 var geoCoder = NodeGeocoder(options);
 
                 response.data.forEach(element => {
+                    
                     geoCoder.reverse({ lat: element.venue.latitude, lon: element.venue.longitude }, function (err, res) {
                         let address = res[0].formattedAddress;
-                        let date = moment(element.datetime).format("MM/DD/YYYY hh:mm A")
-                        console.log(`--------------------------------------------`)
-                        console.log(`Date: ${date}`)
-                        console.log(`Venue: ${element.venue.name}`)
-                        console.log(`Address: ${address}`)
-                        console.log(`Tickets: ${element.offers[0].status}`)
-                        console.log(`Get Tickets Here: ${element.offers[0].url}`)
-                        console.log(`--------------------------------------------`)
+                        let date = moment(element.datetime).format("MM/DD/YYYY hh:mm A");
+                        console.log(`--------------------------------------------`);
+                        console.log("Band: " + artist);
+                        console.log(`Date: ${date}`);
+                        console.log(`Venue: ${element.venue.name}`);
+                        console.log(`Address: ${address}`);
+                        console.log(`Tickets: ${element.offers[0].status}`);
+                        console.log(`Get Tickets Here: ${element.offers[0].url}`);
+                        console.log(`--------------------------------------------`);
                     });
                 })
+                return new Promise((resolve,reject)=>{ })
             })
             .catch(function (error) {
                 if (error.response) {
@@ -179,13 +199,13 @@ function searchBand(bandName) {
             });
     }
 }
-
+//Reads File and Runs Commands 
 function doIt() {
     function processFile() {
-        let contentArray = content.split("\r\n")
-        for (let x = 0; x < contentArray.length; x++) {
+        let contentArray = content.split(";")
+        for (let x = 0; x < contentArray.length-1; x++) {
             let commandAry = contentArray[x].split(",")
-            main(commandAry)
+            main(commandAry);
         }
     }
     fs.readFile('random.txt', "utf8", function read(err, data) {
@@ -196,6 +216,7 @@ function doIt() {
 
 
         processFile();
+        return new Promise((resolve,reject)=>{ })
     });
 
 }
@@ -208,7 +229,9 @@ function chooseSpotify() {
             type: "input"
         }
     ]).then(function (answer) {
-        searchSpotify(answer.song)
+        searchSpotify(answer.song).then(()=>{
+            runInquirer();
+        })
     })
 };
 
@@ -220,7 +243,9 @@ function chooseMovie() {
             type: "input"
         }
     ]).then(function (answer) {
-        searchMovie(answer.movie);
+        searchMovie(answer.movie).then(()=>{
+            runInquirer();
+        })
     })
 };
 
@@ -232,12 +257,17 @@ function chooseBand() {
             type: "input"
         }
     ]).then(function (answer) {
-        searchBand(answer.band)
+        searchBand(answer.band).then(()=>{
+            runInquirer();
+        })
+        
     })
 };
 
 function chooseFile() {
-    doIt();
+    doIt().then(()=>{
+        runInquirer();
+    })
 };
 
 function runInquirer() {
@@ -272,9 +302,8 @@ function runInquirer() {
 
 
 function main(commands) {
-    let command = commands[0];
-    let argument = commands.slice(1).join(" ");
-
+    let command = commands[0].trim();
+    let argument = commands.slice(1).join(" ").trim();
     try {
         fs.appendFileSync('log.txt', `${command},${argument},${moment()}\n`);
     } catch (err) {
@@ -298,9 +327,9 @@ function main(commands) {
             doIt();
             break;
         default:
+            console.log(command)
             console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
     }
-
 }
 
 const arguments = process.argv.slice(2);
