@@ -75,6 +75,7 @@ function releaseDateUpdate(date) {
 
 // Runs Spotify API
 function searchSpotify(songTitle) {
+    
     let spot = new Spotify({
         id: process.env.SPOT_CLIENT_ID,
         secret: process.env.SPOT_SECRET
@@ -92,6 +93,7 @@ function searchSpotify(songTitle) {
         spot
             .search({ type: 'track', limit: 3, query: songTitle })
             .then(function (response) {
+                console.log(`<---Getting Data for Song: ${songTitle}-->`)
                 response.tracks.items.forEach(element => {
                     console.log(`------------------------------------------------------------------`)
                     console.log(`Artist: ${element.artists[0].name}`);
@@ -109,6 +111,7 @@ function searchSpotify(songTitle) {
 }
 // Run OBMD API
 function searchMovie(movieTitle) {
+    
     if (movieTitle === '') {
         getNobody();
     }
@@ -118,6 +121,7 @@ function searchMovie(movieTitle) {
 
         axios.get(`http://www.omdbapi.com/?apikey=${omdbApi}&t=${movieTitle}`)
             .then(function (response) {
+                console.log(`<---Getting Data for Movie: ${movieTitle}-->`)
                 if (response.data.Response === 'False') {
                     console.log("I am sorry Master Meatbag, The movie was not found. Can I recommend:")
                     getNobody();
@@ -148,6 +152,7 @@ function searchMovie(movieTitle) {
 }
 // Runs Concert API
 function searchBand(bandName) {
+    
     if (bandName === '') {
         console.log("Master Meatbag, Please forgive my stupidity but I received no band.")
     }
@@ -164,29 +169,33 @@ function searchBand(bandName) {
         let url = `https://rest.bandsintown.com/artists/${artist}/events?app_id=${api}&date=${date}`
         axios.get(url)
             .then(function (response) {
+                console.log(`<---Getting Data for Band: ${bandName}-->`)
+                if (response.data.length<1) {
+                    console.log("No concerts Found")
+                }
+                else {
+                    const options = {
+                        provider: "mapquest",
+                        apiKey: process.env.GEOCODER
+                    };
+                    var geoCoder = NodeGeocoder(options);
 
-                // console.log(response.data)
-                const options = {
-                    provider: "mapquest",
-                    apiKey: process.env.GEOCODER
-                };
-                var geoCoder = NodeGeocoder(options);
+                    response.data.forEach(element => {
 
-                response.data.forEach(element => {
-
-                    geoCoder.reverse({ lat: element.venue.latitude, lon: element.venue.longitude }, function (err, res) {
-                        let address = res[0].formattedAddress;
-                        let date = moment(element.datetime).format("MM/DD/YYYY hh:mm A");
-                        console.log(`--------------------------------------------`);
-                        console.log("Band: " + artist);
-                        console.log(`Date: ${date}`);
-                        console.log(`Venue: ${element.venue.name}`);
-                        console.log(`Address: ${address}`);
-                        console.log(`Tickets: ${element.offers[0].status}`);
-                        console.log(`Get Tickets Here: ${element.offers[0].url}`);
-                        console.log(`--------------------------------------------`);
-                    });
-                })
+                        geoCoder.reverse({ lat: element.venue.latitude, lon: element.venue.longitude }, function (err, res) {
+                            let address = res[0].formattedAddress;
+                            let date = moment(element.datetime).format("MM/DD/YYYY hh:mm A");
+                            console.log(`--------------------------------------------`);
+                            console.log("Band: " + artist);
+                            console.log(`Date: ${date}`);
+                            console.log(`Venue: ${element.venue.name}`);
+                            console.log(`Address: ${address}`);
+                            console.log(`Tickets: ${element.offers[0].status}`);
+                            console.log(`Get Tickets Here: ${element.offers[0].url}`);
+                            console.log(`--------------------------------------------`);
+                        });
+                    })
+                }
             })
             .catch(function (error) {
                 if (error.response) {
@@ -201,8 +210,33 @@ function doIt() {
         let contentArray = content.split(";")
         for (let x = 0; x < contentArray.length - 1; x++) {
             let commandAry = contentArray[x].split(",")
-            main(commandAry);
-            return new Promise(resolve,reject)
+            main(commandAry).then((response) => {
+                let command = response.command;
+                let argument = response.argument;
+                try {
+                    fs.appendFileSync('log.txt', `${command},${argument},${moment()}\n`);
+                } catch (err) {
+                    console.log("write File Error: " + err)
+                }
+
+                switch (command) {
+                    case "concert-this":
+                        searchBand(argument);
+                        break;
+                    case "spotify-this-song":
+                        searchSpotify(argument);
+                        break;
+                    case "movie-this":
+                        searchMovie(argument);
+                        break;
+                    case "do-what-it-says":
+                        doIt();
+                        break;
+                    default:
+                        console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
+                        break;
+                }
+            });
         }
     }
     fs.readFile('random.txt', "utf8", function read(err, data) {
@@ -212,7 +246,7 @@ function doIt() {
         content = data;
 
 
-        processFile().then(()=>{console.log("Processing File")});
+        processFile();
     });
 
 }
@@ -224,7 +258,14 @@ function chooseSpotify() {
             messsage: "Please Enter a Song: ",
             type: "input"
         }
-    ])
+    ]).then((answer) => {
+        searchSpotify(answer.song);
+        try {
+            fs.appendFileSync('log.txt', `spotify-this-song,${answer.song},${moment()}\n`);
+        } catch (err) {
+            console.log("write File Error: " + err)
+        }
+    })
 };
 
 function chooseMovie() {
@@ -234,7 +275,14 @@ function chooseMovie() {
             messsage: "Please Enter a Movie: ",
             type: "input"
         }
-    ])
+    ]).then((answer) => {
+        searchMovie(answer.movie);
+        try {
+            fs.appendFileSync('log.txt', `Movie-this,${answer.movie},${moment()}\n`);
+        } catch (err) {
+            console.log("write File Error: " + err)
+        }
+    })
 };
 
 function chooseBand() {
@@ -244,7 +292,14 @@ function chooseBand() {
             messsage: "Please Enter a Band: ",
             type: "input"
         }
-    ])
+    ]).then((answer) => { 
+        searchBand(answer.band);
+        try {
+            fs.appendFileSync('log.txt', `concert-this,${answer.band},${moment()}\n`);
+        } catch (err) {
+            console.log("write File Error: " + err)
+        }
+    })
 };
 
 function chooseFile() {
@@ -283,40 +338,53 @@ function runInquirer() {
 
 
 function main(commands) {
-    let command = commands[0].trim();
-    let argument = commands.slice(1).join(" ").trim();
-    try {
-        fs.appendFileSync('log.txt', `${command},${argument},${moment()}\n`);
-    } catch (err) {
-        console.log("write File Error: " + err)
-    }
+    return new Promise((resolve, reject) => {
+        if (commands) {
+            resolve(
+                {
+                    command: commands[0].trim(),
+                    argument: commands.slice(1).join(" ").trim()
+                })
 
-    switch (command) {
-        case "concert-this":
-            console.log("Getting Concert Information...." + argument)
-            searchBand(argument);
-            break;
-        case "spotify-this-song":
-            console.log("Spotifying...." + argument)
-            searchSpotify(argument);
-            break;
-        case "movie-this":
-            console.log("Grabbing Movie Details...." + argument)
-            searchMovie(argument);
-            break;
-        case "do-what-it-says":
-            doIt();
-            break;
-        default:
-            console.log(command)
-            console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
-    }
+        }
+        else {
+            reject({ message: "error!!" })
+        }
+    })
 }
 
 const arguments = process.argv.slice(2);
 
 if (process.argv.length > 2) {
-    main(arguments);
+
+    main(arguments).then((response) => {
+
+        let command = response.command;
+        let argument = response.argument;
+        try {
+            fs.appendFileSync('log.txt', `${command},${argument},${moment()}\n`);
+        } catch (err) {
+            console.log("write File Error: " + err)
+        }
+
+        switch (command) {
+            case "concert-this":
+                searchBand(argument);
+                break;
+            case "spotify-this-song":
+                searchSpotify(argument);
+                break;
+            case "movie-this":
+                searchMovie(argument);
+                break;
+            case "do-what-it-says":
+                doIt();
+                break;
+            default:
+                console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
+                break;
+        }
+    });
 }
 else {
     runInquirer();
