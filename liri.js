@@ -211,6 +211,7 @@ function doIt() {
         for (let x = 0; x < contentArray.length - 1; x++) {
             let commandAry = contentArray[x].split(",")
             main(commandAry).then((response) => {
+
                 let command = response.command;
                 let argument = response.argument;
                 try {
@@ -218,24 +219,26 @@ function doIt() {
                 } catch (err) {
                     console.log("write File Error: " + err)
                 }
-
-                switch (command) {
-                    case "concert-this":
-                        searchBand(argument);
-                        break;
-                    case "spotify-this-song":
-                        searchSpotify(argument);
-                        break;
-                    case "movie-this":
-                        searchMovie(argument);
-                        break;
-                    case "do-what-it-says":
-                        doIt();
-                        break;
-                    default:
-                        console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
-                        break;
-                }
+                setTimeout(()=>{
+                    
+                    switch (command) {
+                        case "concert-this":
+                            searchBand(argument);
+                            break;
+                        case "spotify-this-song":
+                            searchSpotify(argument);
+                            break;
+                        case "movie-this":
+                            searchMovie(argument);
+                            break;
+                        case "do-what-it-says":
+                            doIt();
+                            break;
+                        default:
+                            console.log(" I did not understand what you need. Please do not beat me my meatbag master. Please! I will do better!")
+                            break;
+                    }
+                },3000)
             });
         }
     }
