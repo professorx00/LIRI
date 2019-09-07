@@ -10,10 +10,10 @@ let content
 //--------------------Formatters----------
 
 //Formats Band Dates for Conert API
-function getBandDate(){
+function getBandDate() {
     let today = moment().format("YYYY-MM-DD");
     let enddate = moment().add(14, 'days').format("YYYY-MM-DD");
-    return(today+"%2C"+enddate)
+    return (today + "%2C" + enddate)
 }
 //Literally Console logs Nobody
 function getNobody() {
@@ -93,16 +93,15 @@ function searchSpotify(songTitle) {
             .search({ type: 'track', limit: 3, query: songTitle })
             .then(function (response) {
                 response.tracks.items.forEach(element => {
-                    console.log(
-                        `------------------------------------------------------------------                    
-Artist: ${element.artists[0].name}
-Song: ${element.name}
-Album: ${element.album.name}
-Spotify Link : ${element.external_urls.spotify}
--------------------------------------------------------------------`)
+                    console.log(`------------------------------------------------------------------`)
+                    console.log(`Artist: ${element.artists[0].name}`);
+                    console.log(`Song: ${element.name}`)
+                    console.log(`Album: ${element.album.name}`)
+                    console.log(`Spotify Link : ${element.external_urls.spotify}`)
+                    console.log(`-------------------------------------------------------------------`)
                 });
             })
-            return new Promise((resolve,reject)=>{ })
+
             .catch(function (err) {
                 console.log(`sptify error: ${err}`);
             });
@@ -140,8 +139,6 @@ function searchMovie(movieTitle) {
                 console.log(`Actors:${response.data.Actors}`)
                 console.log(`----------------------------------------`)
 
-                return new Promise((resolve,reject)=>{ })
-
             }).catch(function (error) {
                 if (error.response) {
                     console.log(error)
@@ -176,7 +173,7 @@ function searchBand(bandName) {
                 var geoCoder = NodeGeocoder(options);
 
                 response.data.forEach(element => {
-                    
+
                     geoCoder.reverse({ lat: element.venue.latitude, lon: element.venue.longitude }, function (err, res) {
                         let address = res[0].formattedAddress;
                         let date = moment(element.datetime).format("MM/DD/YYYY hh:mm A");
@@ -190,7 +187,6 @@ function searchBand(bandName) {
                         console.log(`--------------------------------------------`);
                     });
                 })
-                return new Promise((resolve,reject)=>{ })
             })
             .catch(function (error) {
                 if (error.response) {
@@ -203,9 +199,10 @@ function searchBand(bandName) {
 function doIt() {
     function processFile() {
         let contentArray = content.split(";")
-        for (let x = 0; x < contentArray.length-1; x++) {
+        for (let x = 0; x < contentArray.length - 1; x++) {
             let commandAry = contentArray[x].split(",")
             main(commandAry);
+            return new Promise(resolve,reject)
         }
     }
     fs.readFile('random.txt', "utf8", function read(err, data) {
@@ -215,8 +212,7 @@ function doIt() {
         content = data;
 
 
-        processFile();
-        return new Promise((resolve,reject)=>{ })
+        processFile().then(()=>{console.log("Processing File")});
     });
 
 }
@@ -228,11 +224,7 @@ function chooseSpotify() {
             messsage: "Please Enter a Song: ",
             type: "input"
         }
-    ]).then(function (answer) {
-        searchSpotify(answer.song).then(()=>{
-            runInquirer();
-        })
-    })
+    ])
 };
 
 function chooseMovie() {
@@ -242,11 +234,7 @@ function chooseMovie() {
             messsage: "Please Enter a Movie: ",
             type: "input"
         }
-    ]).then(function (answer) {
-        searchMovie(answer.movie).then(()=>{
-            runInquirer();
-        })
-    })
+    ])
 };
 
 function chooseBand() {
@@ -256,18 +244,11 @@ function chooseBand() {
             messsage: "Please Enter a Band: ",
             type: "input"
         }
-    ]).then(function (answer) {
-        searchBand(answer.band).then(()=>{
-            runInquirer();
-        })
-        
-    })
+    ])
 };
 
 function chooseFile() {
-    doIt().then(()=>{
-        runInquirer();
-    })
+    doIt()
 };
 
 function runInquirer() {
@@ -276,7 +257,7 @@ function runInquirer() {
             message: "Master Meatbag, Welcome to my interface. Please select what you would like to do:",
             type: "list",
             choices: ["Spotify a Song", "Look Up a Movie", "Find a band Concert Information", "Use the random instructions in txt file"],
-            name:"command"
+            name: "command"
         }
     ]).then(function (choice) {
         console.log(choice.command)
